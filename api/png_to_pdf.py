@@ -16,43 +16,37 @@ from reportlab.lib.pagesizes import A4
 
 def add_ocr_noise(img, font_path=None):
     """
-    Накладывает полупрозрачный шум поверх текста, чтобы OCR не справлялся.
-    Генерирует случайные символы + диагональные полосы.
+    Сбалансированный шум против OCR — не портит читаемость:
+    - Мелкий зерно-шум (пиксельный)
+    - Диагональные тонкие полосы
+    - Лёгкие мусорные символы вдоль baseline
     """
     draw = ImageDraw.Draw(img, 'RGBA')
     w, h = img.size
 
-    # 1. Диагональные полосы-мусор
-    for _ in range(40):
-        x1 = random.randint(0, w)
-        y1 = random.randint(0, h)
-        length = random.randint(50, 200)
-        angle = random.choice([30, 45, 60, 120, 135, 150])
-        # Симулируем линию под углом через несколько точек
-        for t in range(0, length, 3):
-            dx = int(t * 0.5)
-            dy = int(t * 0.866) if angle in [30, 60] else int(t * 0.707)
-            px = x1 + (dx if angle < 90 else -dx)
-            py = y1 + (dy if angle < 90 else -dy)
-            if 0 <= px < w and 0 <= py < h:
-                draw.point((px, py), fill=(150, 150, 150, 40))
-
-    # 2. Случайные символы (мусор)
-    chars = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя0123456789'
     try:
-        font = ImageFont.truetype(font_path, 24) if font_path else ImageFont.load_default()
+        font_tiny = ImageFont.truetype(font_path, 8) if font_path else ImageFont.load_default()
     except Exception:
-        font = ImageFont.load_default()
+        font_tiny = ImageFont.load_default()
 
-    for _ in range(200):
-        x = random.randint(0, w - 30)
-        y = random.randint(0, h - 30)
-        ch = random.choice(chars)
-        draw.text((x, y), ch, fill=(80, 80, 80, 35), font=font)
+    # 1. Диагональные полосы (средняя плотность)
+    for offset in range(-h, w + h, 25):
+        draw.line([(offset, 0), (offset + h, h)], fill=(200, 200, 200, 45), width=1)
 
-    # 3. Тонкие диагональные полосы (через всю страницу)
-    for offset in range(-h, w + h, 60):
-        draw.line([(offset, 0), (offset + h, h)], fill=(200, 200, 200, 25), width=1)
+    # 2. Мелкие мусорные символы вдоль горизонтальных линий (как baseline-шум)
+    garbage = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя0123456789'
+    for y in range(20, h, 8):
+        for _ in range(3):
+            x = random.randint(0, w - 20)
+            ch = random.choice(garbage)
+            draw.text((x, y), ch, fill=(150, 150, 150, 30), font=font_tiny)
+
+    # 3. Зерно-шум (лёгкий)
+    import numpy as np
+    arr = np.array(img)
+    noise = np.random.randint(-12, 12, arr.shape, dtype=np.int16)
+    arr = np.clip(arr.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+    img = Image.fromarray(arr)
 
     return img
 
