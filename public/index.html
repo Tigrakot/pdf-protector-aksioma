@@ -105,44 +105,6 @@
     letter-spacing: 0.3px;
   }
 
-  /* Переключатель режимов — пилюли */
-  .mode-selector {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 28px;
-    background: rgba(10, 25, 40, 0.5);
-    padding: 5px;
-    border-radius: 14px;
-    border: 1px solid rgba(120, 200, 220, 0.1);
-  }
-  .mode-btn {
-    flex: 1;
-    padding: 12px 8px;
-    background: transparent;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 400;
-    color: rgba(232, 238, 242, 0.5);
-    transition: all 0.25s ease;
-    letter-spacing: 0.2px;
-  }
-  .mode-btn:hover {
-    color: rgba(232, 238, 242, 0.8);
-  }
-  .mode-btn.active {
-    background: linear-gradient(135deg, rgba(95, 199, 212, 0.2) 0%, rgba(95, 199, 212, 0.1) 100%);
-    color: #5fc7d4;
-    box-shadow: inset 0 0 0 1px rgba(95, 199, 212, 0.3);
-  }
-  .mode-btn .mode-icon {
-    display: block;
-    font-size: 20px;
-    margin-bottom: 4px;
-  }
-
   /* Drop zone */
   .drop-zone {
     border: 2px dashed rgba(120, 200, 220, 0.25);
@@ -328,22 +290,7 @@
   <div class="wrapper">
     <div class="container">
       <h1 class="title">Защита <span class="title-accent">PDF</span></h1>
-      <p class="subtitle">Шифрование паролем и водяной знак для конфиденциальных документов</p>
-
-      <div class="mode-selector">
-        <button class="mode-btn active" data-mode="encrypted_pdf">
-          <span class="mode-icon">🔒</span>
-          Зашифрованный PDF
-        </button>
-        <button class="mode-btn" data-mode="pdf_from_viewer">
-          <span class="mode-icon">📑</span>
-          PDF из просмотра
-        </button>
-        <button class="mode-btn" data-mode="html_viewer">
-          <span class="mode-icon">👁</span>
-          HTML-просмотр
-        </button>
-      </div>
+      <p class="subtitle">PDF с защитой от копирования и водяным знаком</p>
 
       <div class="drop-zone" id="dropZone">
         <div class="drop-icon">📄</div>
@@ -352,19 +299,13 @@
         <input type="file" id="fileInput" accept="application/pdf" hidden>
       </div>
 
-      <div class="field" id="passwordField">
-        <label class="field-label">Пароль</label>
-        <input type="text" class="field-input" id="passwordInput" placeholder="по умолчанию: axioma2026">
-        <div class="field-hint">Получатель документа введёт его для просмотра</div>
-      </div>
-
-      <div class="field" id="watermarkField">
+      <div class="field">
         <label class="field-label">Водяной знак</label>
-        <input type="text" class="field-input" id="watermarkInput" placeholder='по умолчанию: АКСИОМА — Конфиденциально'>
+        <input type="text" class="field-input" id="watermarkInput" value="АКСИОМА — Конфиденциально">
       </div>
 
       <button class="btn-primary" id="processBtn" disabled>
-        Защитить документ
+        Защитить и скачать
       </button>
 
       <div class="status" id="status"></div>
@@ -377,28 +318,12 @@
 
 <script>
 let selectedFile = null;
-let currentMode = 'encrypted_pdf';
 
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const processBtn = document.getElementById('processBtn');
 const statusEl = document.getElementById('status');
-const passwordInput = document.getElementById('passwordInput');
 const watermarkInput = document.getElementById('watermarkInput');
-const passwordField = document.getElementById('passwordField');
-const watermarkField = document.getElementById('watermarkField');
-
-document.querySelectorAll('.mode-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentMode = btn.dataset.mode;
-    // HTML-просмотр не требует пароля и водяного знака
-    const hide = currentMode === 'html_viewer';
-    passwordField.style.display = hide ? 'none' : 'block';
-    watermarkField.style.display = hide ? 'none' : 'block';
-  });
-});
 
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
@@ -460,19 +385,10 @@ async function processFile() {
 
   const formData = new FormData();
   formData.append('file', selectedFile);
-  if (currentMode === 'encrypted_pdf' || currentMode === 'pdf_from_viewer') {
-    if (passwordInput.value) formData.append('password', passwordInput.value);
-    if (watermarkInput.value) formData.append('watermark', watermarkInput.value);
-  }
-
-  const endpoint = currentMode === 'encrypted_pdf'
-    ? '/api/protect-pdf-upload'
-    : currentMode === 'pdf_from_viewer'
-    ? '/api/viewer-pdf'
-    : '/api/protect-html';
+  if (watermarkInput.value) formData.append('watermark', watermarkInput.value);
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch('/api/viewer-pdf', {
       method: 'POST',
       body: formData,
     });
@@ -484,36 +400,19 @@ async function processFile() {
 
     const data = await response.json();
 
-    if (currentMode === 'encrypted_pdf' || currentMode === 'pdf_from_viewer') {
-      // base64 → blob → download
-      const binary = atob(data.pdf);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const blob = new Blob([bytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = data.filename || 'protected.pdf';
-      a.click();
-      URL.revokeObjectURL(url);
+    // base64 → blob → download
+    const binary = atob(data.pdf);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = data.filename || 'protected.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
 
-      if (currentMode === 'pdf_from_viewer') {
-        showStatus('success', `✅ Готово! PDF-просмотрщик создан.<br>📑 Текст нельзя скопировать или выделить<br>🖼 Выглядит как защищённый просмотр с водяным знаком`);
-      } else {
-        showStatus('success', `✅ Готово! PDF зашифрован и скачан.<br>📥 Пароль: <code>${data.password || passwordInput.value || 'axioma2026'}</code><br>📋 <small>Передайте пароль сотруднику через SMS или лично</small>`);
-      }
-    } else {
-      // HTML viewer
-      const blob = new Blob([data.html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = data.filename || 'viewer.html';
-      a.click();
-      URL.revokeObjectURL(url);
-
-      showStatus('success', '✅ Готово! HTML-просмотрщик скачан.<br>🔒 В браузере нельзя копировать или печатать');
-    }
+    showStatus('success', `✅ Готово! PDF защищён и скачан.<br>📑 Текст не копируется · 🖼 С водяным знаком`);
 
     resetFile();
   } catch (error) {
