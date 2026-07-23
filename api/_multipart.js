@@ -33,7 +33,15 @@ export async function parseMultipart(req) {
     });
 
     busboy.on('file', (name, stream, info) => {
-      const { filename, mimeType } = info;
+      let { filename, mimeType } = info;
+      // busboy возвращает filename в Latin-1, конвертируем в UTF-8
+      if (filename) {
+        try {
+          filename = Buffer.from(filename, 'latin1').toString('utf8');
+        } catch (e) {
+          // ignore
+        }
+      }
       const chunks = [];
       let size = 0;
 
