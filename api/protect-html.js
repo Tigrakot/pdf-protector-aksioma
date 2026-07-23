@@ -67,12 +67,15 @@ add_watermark('${inputPath}', '${outputPath}', '${finalWatermark.replace(/'/g, "
     const html = generateProtectedHTML(pdfBase64, finalTitle, finalWatermark);
 
     const filename = (file.filename || 'document').replace(/\.pdf$/i, '_view.html');
-    const filenameAscii = filename.replace(/[А-Яа-яЁё]/g, '_');
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filenameAscii}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
-    res.send(html);
-
     console.log(`[HTML] done: ${html.length} chars`);
+
+    // Возвращаем HTML в JSON (надёжно через proxy)
+    res.status(200).json({
+      success: true,
+      filename,
+      size: html.length,
+      html,
+    });
   } catch (error) {
     console.error('[HTML ERROR]', error);
     res.status(500).json({ error: error.message });

@@ -369,23 +369,34 @@
         throw new Error(err.error || 'Failed');
       }
 
-      const blob = await response.blob();
-      const filename = currentMode === 'encrypted_pdf'
-        ? selectedFile.name.replace(/\.pdf$/i, '_ЗАЩИЩЕНО.pdf')
-        : selectedFile.name.replace(/\.pdf$/i, '_просмотр.html');
+      const data = await response.json();
 
-      // Скачиваем
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      if (currentMode === 'encrypted_pdf') {
+        // Декодируем base64 → blob → download
+        const binary = atob(data.pdf);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.filename || 'protected.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
 
-      showStatus('success', '✅ Готово! Файл скачан. ' +
-        (currentMode === 'encrypted_pdf'
-          ? `Пароль: <code>${password || 'axioma2026'}</code>`
-          : 'Откройте HTML в браузере для просмотра'));
+        showStatus('success', `✅ Готово! PDF зашифрован и скачан.<br>📥 Пароль: <code style="background:#fff3cd;padding:2px 6px;border-radius:3px">${data.password || password || 'axioma2026'}</code><br>📋 <small>Скопируй пароль и передай сотруднику через SMS/лично</small>`);
+      } else {
+        // HTML viewer — blob → download
+        const blob = new Blob([data.html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.filename || 'viewer.html';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        showStatus('success', '✅ Готово! HTML-просмотрщик скачан.<br>🔒 В браузере нельзя копировать или печатать');
+      }
     } catch (err) {
       showStatus('error', '❌ ' + err.message);
     } finally {
