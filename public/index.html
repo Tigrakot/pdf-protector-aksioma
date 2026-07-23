@@ -3,406 +3,539 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF Protector — АКСИОМА</title>
+<title>АКСИОМА — Защита PDF</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* Тёмный градиент + диагональные линии (фирменный стиль АКСИОМЫ) */
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    background:
+      radial-gradient(ellipse at top left, rgba(0, 200, 220, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(0, 150, 180, 0.06) 0%, transparent 50%),
+      linear-gradient(135deg, #0a1929 0%, #0d2a3d 50%, #0f3a4a 100%);
+    background-attachment: fixed;
     min-height: 100vh;
+    color: #e8eef2;
+    padding: 40px 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Диагональные тонкие линии (как на обложке) */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(70deg, transparent 49.7%, rgba(120, 200, 220, 0.08) 49.8%, rgba(120, 200, 220, 0.08) 50.1%, transparent 50.3%),
+      linear-gradient(70deg, transparent 49.85%, rgba(120, 200, 220, 0.05) 49.9%, rgba(120, 200, 220, 0.05) 50.05%, transparent 50.1%);
+    background-size: 100% 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(110deg, transparent 49.9%, rgba(120, 200, 220, 0.06) 50%, transparent 50.1%),
+      linear-gradient(110deg, transparent 79.85%, rgba(120, 200, 220, 0.04) 79.9%, transparent 79.95%);
+    background-size: 100% 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    max-width: 640px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Шапка — брендинг АКСИОМА */
+  .brand {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    padding: 20px;
+    margin-bottom: 50px;
+    padding: 0 10px;
   }
+  .brand-logo {
+    font-size: 22px;
+    font-weight: 300;
+    letter-spacing: 4px;
+    color: #ffffff;
+  }
+  .brand-section {
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 3px;
+    color: rgba(120, 200, 220, 0.7);
+  }
+
+  /* Главный блок */
   .container {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    max-width: 600px;
-    width: 100%;
+    background: rgba(20, 40, 60, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(120, 200, 220, 0.15);
+    border-radius: 24px;
     padding: 40px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
   }
-  .header { text-align: center; margin-bottom: 30px; }
-  .logo {
-    font-size: 48px;
+
+  .title {
+    font-size: 32px;
+    font-weight: 300;
+    color: #ffffff;
     margin-bottom: 8px;
+    letter-spacing: -0.5px;
   }
-  h1 {
-    font-size: 28px;
-    color: #1a1a1a;
-    margin-bottom: 8px;
+  .title-accent {
+    color: #5fc7d4;
+    font-weight: 400;
   }
   .subtitle {
-    color: #888;
+    color: rgba(232, 238, 242, 0.6);
     font-size: 14px;
+    font-weight: 300;
+    margin-bottom: 32px;
+    letter-spacing: 0.3px;
   }
+
+  /* Переключатель режимов — пилюли */
   .mode-selector {
     display: flex;
-    gap: 10px;
-    margin-bottom: 24px;
+    gap: 6px;
+    margin-bottom: 28px;
+    background: rgba(10, 25, 40, 0.5);
+    padding: 5px;
+    border-radius: 14px;
+    border: 1px solid rgba(120, 200, 220, 0.1);
   }
   .mode-btn {
     flex: 1;
-    padding: 14px;
-    background: #f5f5f5;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    cursor: pointer;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 500;
-    color: #666;
-    transition: all 0.2s;
-  }
-  .mode-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-color: transparent;
-  }
-  .mode-btn:hover:not(.active) {
-    background: #eee;
-  }
-  .upload-area {
-    border: 3px dashed #ccc;
-    border-radius: 12px;
-    padding: 40px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 20px;
-  }
-  .upload-area.dragover {
-    border-color: #667eea;
-    background: #f8f9ff;
-  }
-  .upload-area.has-file {
-    border-color: #4caf50;
-    background: #f1f8e9;
-  }
-  .upload-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
-  }
-  .upload-text {
-    color: #666;
-    font-size: 14px;
-  }
-  .file-info {
-    display: none;
-    background: #f1f8e9;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-    font-size: 14px;
-    color: #2e7d32;
-  }
-  .file-info.show { display: flex; align-items: center; gap: 10px; }
-  .file-info .remove {
-    margin-left: auto;
-    color: #d32f2f;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  .form-group {
-    margin-bottom: 16px;
-  }
-  .form-group label {
-    display: block;
-    margin-bottom: 6px;
-    color: #555;
-    font-size: 13px;
-    font-weight: 500;
-  }
-  .form-group input {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
-    transition: border-color 0.2s;
-  }
-  .form-group input:focus {
-    outline: none;
-    border-color: #667eea;
-  }
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  .btn {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    padding: 12px 8px;
+    background: transparent;
     border: none;
     border-radius: 10px;
-    font-size: 16px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(232, 238, 242, 0.5);
+    transition: all 0.25s ease;
+    letter-spacing: 0.2px;
+  }
+  .mode-btn:hover {
+    color: rgba(232, 238, 242, 0.8);
+  }
+  .mode-btn.active {
+    background: linear-gradient(135deg, rgba(95, 199, 212, 0.2) 0%, rgba(95, 199, 212, 0.1) 100%);
+    color: #5fc7d4;
+    box-shadow: inset 0 0 0 1px rgba(95, 199, 212, 0.3);
+  }
+  .mode-btn .mode-icon {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed rgba(120, 200, 220, 0.25);
+    border-radius: 16px;
+    padding: 50px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    background: rgba(10, 25, 40, 0.3);
+    margin-bottom: 24px;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: rgba(95, 199, 212, 0.6);
+    background: rgba(95, 199, 212, 0.05);
+  }
+  .drop-zone.has-file {
+    border-style: solid;
+    border-color: rgba(95, 199, 212, 0.4);
+    background: rgba(95, 199, 212, 0.08);
+  }
+  .drop-icon {
+    font-size: 48px;
+    margin-bottom: 14px;
+    opacity: 0.7;
+  }
+  .drop-text {
+    font-size: 15px;
+    color: rgba(232, 238, 242, 0.8);
+    margin-bottom: 4px;
+    font-weight: 400;
+  }
+  .drop-hint {
+    font-size: 12px;
+    color: rgba(232, 238, 242, 0.4);
+    font-weight: 300;
+  }
+  .file-name {
+    font-size: 14px;
+    color: #5fc7d4;
+    font-weight: 500;
+    word-break: break-all;
+  }
+  .file-size {
+    font-size: 12px;
+    color: rgba(232, 238, 242, 0.5);
+    margin-top: 4px;
+  }
+  .file-remove {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: rgba(232, 238, 242, 0.5);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .file-remove:hover { color: #ff7a8a; }
+
+  /* Поля */
+  .field {
+    margin-bottom: 20px;
+  }
+  .field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(232, 238, 242, 0.6);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .field-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(10, 25, 40, 0.5);
+    border: 1px solid rgba(120, 200, 220, 0.15);
+    border-radius: 10px;
+    font-size: 14px;
+    color: #ffffff;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .field-input:focus {
+    outline: none;
+    border-color: rgba(95, 199, 212, 0.5);
+    background: rgba(10, 25, 40, 0.7);
+  }
+  .field-input::placeholder {
+    color: rgba(232, 238, 242, 0.3);
+  }
+
+  /* Кнопка — главная */
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #5fc7d4 0%, #3a9eb0 100%);
+    border: none;
+    border-radius: 12px;
+    color: #0a1929;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.1s;
-  }
-  .btn:hover:not(:disabled) { transform: translateY(-1px); }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .features {
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #eee;
-  }
-  .features h3 {
-    font-size: 14px;
-    color: #888;
-    margin-bottom: 12px;
+    transition: all 0.25s;
+    letter-spacing: 0.3px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    margin-top: 8px;
   }
-  .feature {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 0;
-    font-size: 14px;
-    color: #555;
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(95, 199, 212, 0.3);
   }
-  .feature .icon { color: #4caf50; font-weight: bold; }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Статус */
   .status {
-    margin-top: 16px;
-    padding: 12px;
-    border-radius: 8px;
+    margin-top: 20px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.6;
     display: none;
   }
   .status.show { display: block; }
   .status.processing {
-    background: #fff4e6;
-    color: #b45309;
+    background: rgba(95, 199, 212, 0.1);
+    border: 1px solid rgba(95, 199, 212, 0.3);
+    color: #5fc7d4;
+  }
+  .status.success {
+    background: rgba(95, 199, 212, 0.15);
+    border: 1px solid rgba(95, 199, 212, 0.4);
+    color: #b8e6ed;
   }
   .status.error {
-    background: #fee;
-    color: #c62828;
+    background: rgba(255, 122, 138, 0.1);
+    border: 1px solid rgba(255, 122, 138, 0.3);
+    color: #ff9aa6;
+  }
+  .status code {
+    background: rgba(10, 25, 40, 0.5);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #5fc7d4;
   }
   .spinner {
     display: inline-block;
     width: 14px;
     height: 14px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid #667eea;
+    border: 2px solid rgba(95, 199, 212, 0.3);
+    border-top-color: #5fc7d4;
     border-radius: 50%;
-    animation: spin 1s linear infinite;
-    vertical-align: middle;
+    animation: spin 0.8s linear infinite;
     margin-right: 8px;
+    vertical-align: middle;
   }
-  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-  .hidden { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Подвал — контакты */
+  .footer {
+    margin-top: 40px;
+    text-align: center;
+    color: rgba(232, 238, 242, 0.3);
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+  }
+  .footer a {
+    color: rgba(95, 199, 212, 0.6);
+    text-decoration: none;
+  }
+  .footer a:hover { color: #5fc7d4; }
+
+  /* Hint под полями */
+  .field-hint {
+    font-size: 11px;
+    color: rgba(232, 238, 242, 0.4);
+    margin-top: 6px;
+    font-weight: 300;
+  }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <div class="logo">🔒</div>
-    <h1>PDF Protector</h1>
-    <p class="subtitle">Защита PDF от копирования и распространения</p>
-  </div>
-
-  <div class="mode-selector">
-    <div class="mode-btn active" data-mode="encrypted_pdf" onclick="setMode('encrypted_pdf')">
-      📄 Зашифрованный PDF
+  <div class="wrapper">
+    <div class="brand">
+      <div class="brand-logo">АКСИОМА</div>
+      <div class="brand-section">СТРАХОВАНИЕ</div>
     </div>
-    <div class="mode-btn" data-mode="protected_html" onclick="setMode('protected_html')">
-      🌐 HTML-просмотрщик
-    </div>
-  </div>
 
-  <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-    <div class="upload-icon">📁</div>
-    <div class="upload-text">Нажмите или перетащите PDF файл сюда</div>
-  </div>
-  <input type="file" id="fileInput" accept="application/pdf" class="hidden">
+    <div class="container">
+      <h1 class="title">Защита <span class="title-accent">PDF</span></h1>
+      <p class="subtitle">Шифрование паролем и водяной знак для конфиденциальных документов</p>
 
-  <div class="file-info" id="fileInfo">
-    <span>📄</span>
-    <span id="fileName">file.pdf</span>
-    <span class="remove" onclick="removeFile()">✕</span>
-  </div>
-
-  <div id="pdfSettings">
-    <div class="form-row">
-      <div class="form-group">
-        <label>Пароль (необязательно)</label>
-        <input type="text" id="password" placeholder="Оставьте пустым для 'axioma2026'">
+      <div class="mode-selector">
+        <button class="mode-btn active" data-mode="encrypted_pdf">
+          <span class="mode-icon">🔒</span>
+          Зашифрованный PDF
+        </button>
+        <button class="mode-btn" data-mode="html_viewer">
+          <span class="mode-icon">👁</span>
+          HTML-просмотр
+        </button>
       </div>
-      <div class="form-group">
-        <label>Водяной знак</label>
-        <input type="text" id="watermark" value="АКСИОМА — Конфиденциально">
+
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">📄</div>
+        <div class="drop-text">Перетащите PDF сюда</div>
+        <div class="drop-hint">или нажмите для выбора · до 50 МБ</div>
+        <input type="file" id="fileInput" accept="application/pdf" hidden>
       </div>
+
+      <div class="field" id="passwordField">
+        <label class="field-label">Пароль</label>
+        <input type="text" class="field-input" id="passwordInput" placeholder="по умолчанию: axioma2026">
+        <div class="field-hint">Получатель документа введёт его для просмотра</div>
+      </div>
+
+      <div class="field" id="watermarkField">
+        <label class="field-label">Водяной знак</label>
+        <input type="text" class="field-input" id="watermarkInput" placeholder='по умолчанию: АКСИОМА — Конфиденциально'>
+      </div>
+
+      <button class="btn-primary" id="processBtn" disabled>
+        Защитить документ
+      </button>
+
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="footer">
+      ООО «АКСИОМА» · <a href="mailto:oyyorel@aksiomins.ru">oyyorel@aksiomins.ru</a> · +7 999 172 26 46
     </div>
   </div>
-
-  <div id="htmlSettings" class="hidden">
-    <div class="form-group">
-      <label>Название документа</label>
-      <input type="text" id="docTitle" placeholder="Заключение" value="Защищённый документ">
-    </div>
-  </div>
-
-  <button class="btn" id="processBtn" onclick="processFile()">
-    🔒 Защитить
-  </button>
-
-  <div class="status" id="status"></div>
-
-  <div class="features">
-    <h3>Что защищает</h3>
-    <div class="feature"><span class="icon">✓</span> Водяной знак на каждой странице</div>
-    <div class="feature"><span class="icon">✓</span> AES-256 шифрование</div>
-    <div class="feature"><span class="icon">✓</span> Запрет копирования текста</div>
-    <div class="feature"><span class="icon">✓</span> Запрет печати / редактирования</div>
-    <div class="feature"><span class="icon">✓</span> Только просмотр в браузере (HTML-режим)</div>
-  </div>
-</div>
 
 <script>
-  let selectedFile = null;
-  let currentMode = 'encrypted_pdf';
+let selectedFile = null;
+let currentMode = 'encrypted_pdf';
 
-  function setMode(mode) {
-    currentMode = mode;
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mode === mode);
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const processBtn = document.getElementById('processBtn');
+const statusEl = document.getElementById('status');
+const passwordInput = document.getElementById('passwordInput');
+const watermarkInput = document.getElementById('watermarkInput');
+const passwordField = document.getElementById('passwordField');
+const watermarkField = document.getElementById('watermarkField');
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    // HTML-просмотр не требует пароля и водяного знака
+    const hide = currentMode === 'html_viewer';
+    passwordField.style.display = hide ? 'none' : 'block';
+    watermarkField.style.display = hide ? 'none' : 'block';
+  });
+});
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    showStatus('error', 'Можно загружать только PDF-файлы');
+    return;
+  }
+  if (file.size > 50 * 1024 * 1024) {
+    showStatus('error', 'Файл больше 50 МБ');
+    return;
+  }
+  selectedFile = file;
+  dropZone.classList.add('has-file');
+  dropZone.innerHTML = `
+    <div class="drop-icon">✅</div>
+    <div class="file-name">${escapeHtml(file.name)}</div>
+    <div class="file-size">${formatSize(file.size)}</div>
+    <div class="file-remove">убрать</div>
+  `;
+  dropZone.querySelector('.file-remove').addEventListener('click', (e) => {
+    e.stopPropagation();
+    resetFile();
+  });
+  processBtn.disabled = false;
+  hideStatus();
+}
+
+function resetFile() {
+  selectedFile = null;
+  fileInput.value = '';
+  dropZone.classList.remove('has-file');
+  dropZone.innerHTML = `
+    <div class="drop-icon">📄</div>
+    <div class="drop-text">Перетащите PDF сюда</div>
+    <div class="drop-hint">или нажмите для выбора · до 50 МБ</div>
+  `;
+  processBtn.disabled = true;
+  hideStatus();
+}
+
+processBtn.addEventListener('click', processFile);
+
+async function processFile() {
+  if (!selectedFile) return;
+
+  processBtn.disabled = true;
+  showStatus('processing', `<span class="spinner"></span>Защищаю документ…`);
+
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+  if (currentMode === 'encrypted_pdf') {
+    if (passwordInput.value) formData.append('password', passwordInput.value);
+    if (watermarkInput.value) formData.append('watermark', watermarkInput.value);
+  }
+
+  const endpoint = currentMode === 'encrypted_pdf'
+    ? '/api/protect-pdf-upload'
+    : '/api/protect-html';
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      body: formData,
     });
-    document.getElementById('pdfSettings').classList.toggle('hidden', mode !== 'encrypted_pdf');
-    document.getElementById('htmlSettings').classList.toggle('hidden', mode !== 'protected_html');
-    document.getElementById('processBtn').textContent = mode === 'encrypted_pdf' ? '🔒 Защитить PDF' : '🌐 Создать просмотрщик';
-  }
 
-  // Drag & drop
-  const uploadArea = document.getElementById('uploadArea');
-  const fileInput = document.getElementById('fileInput');
-
-  uploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.classList.add('dragover');
-  });
-  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-  uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('dragover');
-    if (e.dataTransfer.files.length > 0) {
-      setFile(e.dataTransfer.files[0]);
-    }
-  });
-
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) setFile(e.target.files[0]);
-  });
-
-  function setFile(file) {
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      showStatus('error', '⛔ Только PDF файлы');
-      return;
-    }
-    if (file.size > 50 * 1024 * 1024) {
-      showStatus('error', '⛔ Файл больше 50 MB');
-      return;
-    }
-    selectedFile = file;
-    document.getElementById('fileName').textContent = `${file.name} (${formatSize(file.size)})`;
-    document.getElementById('fileInfo').classList.add('show');
-    uploadArea.classList.add('has-file');
-    uploadArea.querySelector('.upload-text').textContent = 'Файл выбран';
-    hideStatus();
-  }
-
-  function removeFile() {
-    selectedFile = null;
-    fileInput.value = '';
-    document.getElementById('fileInfo').classList.remove('show');
-    uploadArea.classList.remove('has-file');
-    uploadArea.querySelector('.upload-text').textContent = 'Нажмите или перетащите PDF файл сюда';
-  }
-
-  function formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
-  }
-
-  function showStatus(type, text) {
-    const status = document.getElementById('status');
-    status.className = `status show ${type}`;
-    status.innerHTML = text;
-  }
-
-  function hideStatus() {
-    document.getElementById('status').className = 'status';
-  }
-
-  async function processFile() {
-    if (!selectedFile) {
-      showStatus('error', '⛔ Сначала выберите PDF файл');
-      return;
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+      throw new Error(err.error || `HTTP ${response.status}`);
     }
 
-    const btn = document.getElementById('processBtn');
-    btn.disabled = true;
-    showStatus('processing', '<span class="spinner"></span> Обрабатываю PDF...');
+    const data = await response.json();
 
-    try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('mode', currentMode);
+    if (currentMode === 'encrypted_pdf') {
+      // base64 → blob → download
+      const binary = atob(data.pdf);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.filename || 'protected.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
 
-      const password = document.getElementById('password').value;
-      if (password) formData.append('password', password);
+      showStatus('success', `✅ Готово! PDF зашифрован и скачан.<br>📥 Пароль: <code>${data.password || passwordInput.value || 'axioma2026'}</code><br>📋 <small>Передайте пароль сотруднику через SMS или лично</small>`);
+    } else {
+      // HTML viewer
+      const blob = new Blob([data.html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.filename || 'viewer.html';
+      a.click();
+      URL.revokeObjectURL(url);
 
-      const watermark = document.getElementById('watermark').value;
-      if (watermark) formData.append('watermark', watermark);
-
-      const title = document.getElementById('docTitle').value;
-      if (title) formData.append('title', title);
-
-      const endpoint = currentMode === 'encrypted_pdf' ? '/api/protect-pdf-upload' : '/api/protect-html';
-      const response = await fetch(endpoint, { method: 'POST', body: formData });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(err.error || 'Failed');
-      }
-
-      const data = await response.json();
-
-      if (currentMode === 'encrypted_pdf') {
-        // Декодируем base64 → blob → download
-        const binary = atob(data.pdf);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const blob = new Blob([bytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.filename || 'protected.pdf';
-        a.click();
-        URL.revokeObjectURL(url);
-
-        showStatus('success', `✅ Готово! PDF зашифрован и скачан.<br>📥 Пароль: <code style="background:#fff3cd;padding:2px 6px;border-radius:3px">${data.password || password || 'axioma2026'}</code><br>📋 <small>Скопируй пароль и передай сотруднику через SMS/лично</small>`);
-      } else {
-        // HTML viewer — blob → download
-        const blob = new Blob([data.html], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.filename || 'viewer.html';
-        a.click();
-        URL.revokeObjectURL(url);
-
-        showStatus('success', '✅ Готово! HTML-просмотрщик скачан.<br>🔒 В браузере нельзя копировать или печатать');
-      }
-    } catch (err) {
-      showStatus('error', '❌ ' + err.message);
-    } finally {
-      btn.disabled = false;
+      showStatus('success', '✅ Готово! HTML-просмотрщик скачан.<br>🔒 В браузере нельзя копировать или печатать');
     }
+
+    resetFile();
+  } catch (error) {
+    showStatus('error', `❌ Ошибка: ${escapeHtml(error.message)}`);
+    processBtn.disabled = false;
   }
+}
+
+function showStatus(type, html) {
+  statusEl.className = `status show ${type}`;
+  statusEl.innerHTML = html;
+}
+function hideStatus() {
+  statusEl.className = 'status';
+  statusEl.innerHTML = '';
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' Б';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' КБ';
+  return (bytes/1024/1024).toFixed(2) + ' МБ';
+}
 </script>
 </body>
 </html>
