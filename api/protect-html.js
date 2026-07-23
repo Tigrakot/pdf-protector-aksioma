@@ -101,7 +101,6 @@ function generateProtectedHTML(pdfBase64, title, watermark) {
     color: #fff;
     user-select: none;
     -webkit-user-select: none;
-    overflow: hidden;
   }
   .header {
     background: #0a0a0a;
@@ -111,6 +110,9 @@ function generateProtectedHTML(pdfBase64, title, watermark) {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #333;
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
   .header h1 { font-size: 16px; font-weight: 500; }
   .header .badge {
@@ -126,8 +128,12 @@ function generateProtectedHTML(pdfBase64, title, watermark) {
     padding: 8px 20px;
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 12px;
     border-bottom: 1px solid #333;
+    position: sticky;
+    top: 45px;
+    z-index: 99;
   }
   .toolbar button {
     background: #444;
@@ -138,38 +144,81 @@ function generateProtectedHTML(pdfBase64, title, watermark) {
     cursor: pointer;
     font-size: 13px;
   }
-  .toolbar button:hover { background: #666; }
+  .toolbar button:hover:not(:disabled) { background: #666; }
   .toolbar button:disabled { opacity: 0.4; cursor: not-allowed; }
   .toolbar .info {
     color: #aaa;
     padding: 6px 14px;
     font-size: 13px;
+    min-width: 80px;
+    text-align: center;
   }
+
+  /* Прогресс-бар */
+  .progress {
+    background: #1a1a1a;
+    padding: 30px 20px;
+    text-align: center;
+  }
+  .progress-text {
+    color: #aaa;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .progress-bar {
+    width: 200px;
+    height: 3px;
+    background: #333;
+    border-radius: 2px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+  .progress-bar::before {
+    content: '';
+    display: block;
+    width: 30%;
+    height: 100%;
+    background: #5fc7d4;
+    animation: progress 1s ease-in-out infinite;
+  }
+  @keyframes progress {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+
   #pdf-container {
-    height: calc(100vh - 100px);
-    overflow: auto;
     padding: 20px;
     text-align: center;
     background: #1a1a1a;
+    min-height: calc(100vh - 100px);
   }
   #pdf-container canvas {
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     margin-bottom: 16px;
     max-width: 100%;
   }
+
+  /* Водяной знак — горизонтальный */
   .watermark-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     pointer-events: none;
     z-index: 9999;
-    background-image: repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 200px,
-      rgba(200, 200, 200, 0.05) 200px,
-      rgba(200, 200, 200, 0.05) 400px
-    );
+    overflow: hidden;
   }
+  .watermark-overlay .wm-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    color: rgba(180, 180, 180, 0.12);
+    font-size: 22px;
+    font-weight: 300;
+    letter-spacing: 4px;
+    text-align: center;
+    white-space: nowrap;
+    font-family: -apple-system, sans-serif;
+  }
+
   @media print {
     body { display: none !important; }
   }
@@ -185,16 +234,24 @@ function generateProtectedHTML(pdfBase64, title, watermark) {
 </div>
 
 <div class="toolbar">
-  <button onclick="prevPage()">◀ Назад</button>
+  <button id="btn-prev">◀</button>
   <span class="info"><span id="page-num">1</span> / <span id="page-count">?</span></span>
-  <button onclick="nextPage()">Вперёд ▶</button>
-  <button onclick="zoomOut()">−</button>
+  <button id="btn-next">▶</button>
+  <button id="btn-zoom-out">−</button>
   <span class="info" id="zoom-level">100%</span>
-  <button onclick="zoomIn()">+</button>
+  <button id="btn-zoom-in">+</button>
 </div>
 
-<div id="pdf-container"></div>
-<div class="watermark-overlay"></div>
+<div id="pdf-container">
+  <div class="progress" id="loading">
+    <div class="progress-text">Загружаю документ…</div>
+    <div class="progress-bar"></div>
+  </div>
+</div>
+
+<div class="watermark-overlay" id="watermark">
+  ${generateWatermarkLines(watermark)}
+</div>
 
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -208,59 +265,119 @@ for (let i = 0; i < pdfData.length; i++) {
 let pdfDoc = null;
 let currentPage = 1;
 let currentZoom = 1.0;
+let renderedPages = new Set();
+let renderQueue = [];
+let isRendering = false;
 
 async function loadPdf() {
   try {
     pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
     document.getElementById('page-count').textContent = pdfDoc.numPages;
-    renderPage(currentPage);
+
+    // Очищаем прогресс, добавляем placeholder'ы для всех страниц
+    const container = document.getElementById('pdf-container');
+    container.innerHTML = '';
+
+    for (let i = 1; i <= pdfDoc.numPages; i++) {
+      const ph = document.createElement('div');
+      ph.id = 'page-' + i;
+      ph.style.minHeight = '600px';
+      ph.style.marginBottom = '16px';
+      ph.dataset.pageNum = i;
+      container.appendChild(ph);
+      renderQueue.push(i);
+    }
+
+    // Запускаем рендер первой страницы сразу
+    renderPage(1);
+    // Остальные — в фоне, с задержкой (не блокируем UI)
+    setTimeout(processQueue, 100);
   } catch (err) {
     console.error(err);
+    document.getElementById('pdf-container').innerHTML = '<div style="padding:40px;color:#f88">Ошибка загрузки PDF</div>';
   }
 }
 
-async function renderPage(num) {
-  if (!pdfDoc) return;
-  const page = await pdfDoc.getPage(num);
-  const viewport = page.getViewport({ scale: currentZoom * 1.5 });
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  canvas.height = viewport.height;
-  canvas.width = viewport.width;
-  canvas.style.userSelect = 'none';
-
-  const container = document.getElementById('pdf-container');
-  container.innerHTML = '';
-  container.appendChild(canvas);
-
-  await page.render({ canvasContext: context, viewport }).promise;
-  document.getElementById('page-num').textContent = num;
+async function processQueue() {
+  if (isRendering || renderQueue.length === 0) return;
+  isRendering = true;
+  const next = renderQueue.shift();
+  await renderPage(next, true);
+  isRendering = false;
+  if (renderQueue.length > 0) {
+    setTimeout(processQueue, 50);
+  }
 }
 
-function prevPage() {
+async function renderPage(num, silent = false) {
+  if (renderedPages.has(num)) return;
+  const placeholder = document.getElementById('page-' + num);
+  if (!placeholder) return;
+
+  try {
+    const page = await pdfDoc.getPage(num);
+    const viewport = page.getViewport({ scale: currentZoom * 1.3 });
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    canvas.style.userSelect = 'none';
+    canvas.style.display = 'block';
+    canvas.style.margin = '0 auto';
+
+    placeholder.innerHTML = '';
+    placeholder.appendChild(canvas);
+
+    await page.render({ canvasContext: context, viewport }).promise;
+    renderedPages.add(num);
+    if (!silent) {
+      currentPage = num;
+      document.getElementById('page-num').textContent = num;
+    }
+  } catch (err) {
+    console.error('Render error page', num, err);
+  }
+}
+
+// Кнопки навигации
+document.getElementById('btn-prev').onclick = () => {
   if (currentPage > 1) {
     currentPage--;
-    renderPage(currentPage);
+    scrollToPage(currentPage);
   }
-}
-
-function nextPage() {
+};
+document.getElementById('btn-next').onclick = () => {
   if (pdfDoc && currentPage < pdfDoc.numPages) {
     currentPage++;
-    renderPage(currentPage);
+    scrollToPage(currentPage);
   }
+};
+document.getElementById('btn-zoom-in').onclick = () => {
+  currentZoom = Math.min(currentZoom + 0.2, 2.5);
+  document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
+  rerenderAll();
+};
+document.getElementById('btn-zoom-out').onclick = () => {
+  currentZoom = Math.max(currentZoom - 0.2, 0.6);
+  document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
+  rerenderAll();
+};
+
+async function rerenderAll() {
+  renderedPages.clear();
+  for (let i = 1; i <= pdfDoc.numPages; i++) {
+    const ph = document.getElementById('page-' + i);
+    if (ph) ph.innerHTML = '<div style="padding:40px;color:#666">Обновление…</div>';
+  }
+  renderQueue = Array.from({length: pdfDoc.numPages}, (_, i) => i + 1);
+  await processQueue();
 }
 
-function zoomIn() {
-  currentZoom = Math.min(currentZoom + 0.2, 3.0);
-  document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
-  renderPage(currentPage);
-}
-
-function zoomOut() {
-  currentZoom = Math.max(currentZoom - 0.2, 0.5);
-  document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
-  renderPage(currentPage);
+function scrollToPage(num) {
+  const el = document.getElementById('page-' + num);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('page-num').textContent = num;
 }
 
 // Блокируем copy/save/print
@@ -278,6 +395,16 @@ loadPdf();
 
 </body>
 </html>`;
+}
+
+function generateWatermarkLines(text) {
+  // Горизонтальные строки по всей высоте экрана
+  const safe = text.replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c]);
+  const lines = [];
+  for (let top = 0; top < 100; top += 8) {
+    lines.push(`<div class="wm-line" style="top:${top}%">${safe}</div>`);
+  }
+  return lines.join('\n  ');
 }
 
 function escapeHtml(text) {
