@@ -303,20 +303,17 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Подвал — контакты */
+  /* Подвал — только лёгкая подпись */
   .footer {
-    margin-top: 40px;
+    margin-top: 50px;
     text-align: center;
-    color: rgba(232, 238, 242, 0.3);
-    font-size: 12px;
-    font-weight: 300;
-    letter-spacing: 0.5px;
   }
-  .footer a {
-    color: rgba(95, 199, 212, 0.6);
-    text-decoration: none;
+  .footer-mark {
+    display: inline-block;
+    width: 32px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(95, 199, 212, 0.5) 50%, transparent 100%);
   }
-  .footer a:hover { color: #5fc7d4; }
 
   /* Hint под полями */
   .field-hint {
@@ -329,11 +326,6 @@
 </head>
 <body>
   <div class="wrapper">
-    <div class="brand">
-      <div class="brand-logo">АКСИОМА</div>
-      <div class="brand-section">СТРАХОВАНИЕ</div>
-    </div>
-
     <div class="container">
       <h1 class="title">Защита <span class="title-accent">PDF</span></h1>
       <p class="subtitle">Шифрование паролем и водяной знак для конфиденциальных документов</p>
@@ -375,7 +367,7 @@
     </div>
 
     <div class="footer">
-      ООО «АКСИОМА» · <a href="mailto:oyyorel@aksiomins.ru">oyyorel@aksiomins.ru</a> · +7 999 172 26 46
+      <span class="footer-mark"></span>
     </div>
   </div>
 
