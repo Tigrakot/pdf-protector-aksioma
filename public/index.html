@@ -460,15 +460,15 @@ async function processFile() {
 
   const formData = new FormData();
   formData.append('file', selectedFile);
-  if (currentMode === 'encrypted_pdf' || currentMode === 'flat_pdf') {
+  if (currentMode === 'encrypted_pdf' || currentMode === 'pdf_from_viewer') {
     if (passwordInput.value) formData.append('password', passwordInput.value);
     if (watermarkInput.value) formData.append('watermark', watermarkInput.value);
   }
 
   const endpoint = currentMode === 'encrypted_pdf'
     ? '/api/protect-pdf-upload'
-    : currentMode === 'flat_pdf'
-    ? '/api/flatten-pdf'
+    : currentMode === 'pdf_from_viewer'
+    ? '/api/viewer-pdf'
     : '/api/protect-html';
 
   try {
@@ -484,7 +484,7 @@ async function processFile() {
 
     const data = await response.json();
 
-    if (currentMode === 'encrypted_pdf' || currentMode === 'flat_pdf') {
+    if (currentMode === 'encrypted_pdf' || currentMode === 'pdf_from_viewer') {
       // base64 → blob → download
       const binary = atob(data.pdf);
       const bytes = new Uint8Array(binary.length);
@@ -497,8 +497,8 @@ async function processFile() {
       a.click();
       URL.revokeObjectURL(url);
 
-      if (currentMode === 'flat_pdf') {
-        showStatus('success', `✅ Готово! PDF растеризован.<br>🖼 Текст стал картинкой — нельзя скопировать или выделить<br>🔒 ${data.password ? 'Пароль: <code>' + data.password + '</code>' : 'Без пароля'}`);
+      if (currentMode === 'pdf_from_viewer') {
+        showStatus('success', `✅ Готово! PDF-просмотрщик создан.<br>📑 Текст нельзя скопировать или выделить<br>🖼 Выглядит как защищённый просмотр с водяным знаком`);
       } else {
         showStatus('success', `✅ Готово! PDF зашифрован и скачан.<br>📥 Пароль: <code>${data.password || passwordInput.value || 'axioma2026'}</code><br>📋 <small>Передайте пароль сотруднику через SMS или лично</small>`);
       }
