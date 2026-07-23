@@ -8,6 +8,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import protectPdfUploadHandler from './api/protect-pdf-upload.js';
+import flattenPdfHandler from './api/flatten-pdf.js';
+import flattenPdfPyrusHandler from './api/flatten-pdf-pyrus.js';
 import protectHtmlHandler from './api/protect-html.js';
 import pyrusWebhookHandler from './api/pyrus-webhook.js';
 import { parseMultipart } from './api/_multipart.js';
@@ -51,6 +53,8 @@ app.get('/', (req, res) => {
 
 // API endpoints
 app.all('/api/protect-pdf-upload', (req, res) => protectPdfUploadHandler(req, res));
+app.all('/api/flatten-pdf', (req, res) => flattenPdfHandler(req, res));
+app.all('/api/flatten-pdf-pyrus', (req, res) => flattenPdfPyrusHandler(req, res));
 app.all('/api/protect-html', (req, res) => protectHtmlHandler(req, res));
 app.all('/api/pyrus-webhook', (req, res) => pyrusWebhookHandler(req, res));
 app.all('/_debug', async (req, res) => {
