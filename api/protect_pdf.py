@@ -1,6 +1,6 @@
 """
 Защита PDF: водяной знак + шифрование AES-256
-Использует reportlab (водяной знак) и qpdf (шифрование + permissions)
+Использует reportlab (водяной знак с Arial для кириллицы) и qpdf (шифрование)
 """
 
 import sys
@@ -12,6 +12,14 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import Color
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+
+# Регистрируем Arial с поддержкой кириллицы
+FONT_PATH = os.path.join(os.path.dirname(__file__), 'Arial.ttf')
+pdfmetrics.registerFont(TTFont('Arial', FONT_PATH))
+pdfmetrics.registerFont(TTFont('Arial-Bold', FONT_PATH))  # обычный жирный = основной файл
 
 
 def add_watermark(input_pdf, output_pdf, watermark_text="АКСИОМА — Конфиденциально"):
@@ -21,16 +29,17 @@ def add_watermark(input_pdf, output_pdf, watermark_text="АКСИОМА — Ко
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
 
-    # Полупрозрачный серый
-    c.setFillColor(Color(0.4, 0.4, 0.4, alpha=0.25))
+    # Полупрозрачный серый — достаточно заметный, но не мешает чтению
+    c.setFillColor(Color(0.35, 0.35, 0.35, alpha=0.28))
 
     # Несколько диагональных надписей по всей странице
     c.saveState()
     c.translate(A4[0] / 2, A4[1] / 2)
     c.rotate(45)
-    c.setFont("Helvetica-Bold", 45)
+    c.setFont("Arial", 36)
 
-    for y_offset in range(-400, 500, 130):
+    # Шаг ~130pt, чтобы покрыть страницу плотно
+    for y_offset in range(-400, 500, 110):
         c.drawCentredString(0, y_offset, watermark_text)
 
     c.restoreState()
