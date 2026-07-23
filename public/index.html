@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Protector — АКСИОМА</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    max-width: 600px;
+    width: 100%;
+    padding: 40px;
+  }
+  .header { text-align: center; margin-bottom: 30px; }
+  .logo {
+    font-size: 48px;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 28px;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    color: #888;
+    font-size: 14px;
+  }
+  .mode-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 14px;
+    background: #f5f5f5;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s;
+  }
+  .mode-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+  }
+  .mode-btn:hover:not(.active) {
+    background: #eee;
+  }
+  .upload-area {
+    border: 3px dashed #ccc;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+  }
+  .upload-area.dragover {
+    border-color: #667eea;
+    background: #f8f9ff;
+  }
+  .upload-area.has-file {
+    border-color: #4caf50;
+    background: #f1f8e9;
+  }
+  .upload-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  .upload-text {
+    color: #666;
+    font-size: 14px;
+  }
+  .file-info {
+    display: none;
+    background: #f1f8e9;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #2e7d32;
+  }
+  .file-info.show { display: flex; align-items: center; gap: 10px; }
+  .file-info .remove {
+    margin-left: auto;
+    color: #d32f2f;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #555;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .features {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+  }
+  .features h3 {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .feature {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 14px;
+    color: #555;
+  }
+  .feature .icon { color: #4caf50; font-weight: bold; }
+  .status {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    display: none;
+  }
+  .status.show { display: block; }
+  .status.processing {
+    background: #fff4e6;
+    color: #b45309;
+  }
+  .status.error {
+    background: #fee;
+    color: #c62828;
+  }
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">🔒</div>
+    <h1>PDF Protector</h1>
+    <p class="subtitle">Защита PDF от копирования и распространения</p>
+  </div>
+
+  <div class="mode-selector">
+    <div class="mode-btn active" data-mode="encrypted_pdf" onclick="setMode('encrypted_pdf')">
+      📄 Зашифрованный PDF
+    </div>
+    <div class="mode-btn" data-mode="protected_html" onclick="setMode('protected_html')">
+      🌐 HTML-просмотрщик
+    </div>
+  </div>
+
+  <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+    <div class="upload-icon">📁</div>
+    <div class="upload-text">Нажмите или перетащите PDF файл сюда</div>
+  </div>
+  <input type="file" id="fileInput" accept="application/pdf" class="hidden">
+
+  <div class="file-info" id="fileInfo">
+    <span>📄</span>
+    <span id="fileName">file.pdf</span>
+    <span class="remove" onclick="removeFile()">✕</span>
+  </div>
+
+  <div id="pdfSettings">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Пароль (необязательно)</label>
+        <input type="text" id="password" placeholder="Оставьте пустым для 'axioma2026'">
+      </div>
+      <div class="form-group">
+        <label>Водяной знак</label>
+        <input type="text" id="watermark" value="АКСИОМА — Конфиденциально">
+      </div>
+    </div>
+  </div>
+
+  <div id="htmlSettings" class="hidden">
+    <div class="form-group">
+      <label>Название документа</label>
+      <input type="text" id="docTitle" placeholder="Заключение" value="Защищённый документ">
+    </div>
+  </div>
+
+  <button class="btn" id="processBtn" onclick="processFile()">
+    🔒 Защитить
+  </button>
+
+  <div class="status" id="status"></div>
+
+  <div class="features">
+    <h3>Что защищает</h3>
+    <div class="feature"><span class="icon">✓</span> Водяной знак на каждой странице</div>
+    <div class="feature"><span class="icon">✓</span> AES-256 шифрование</div>
+    <div class="feature"><span class="icon">✓</span> Запрет копирования текста</div>
+    <div class="feature"><span class="icon">✓</span> Запрет печати / редактирования</div>
+    <div class="feature"><span class="icon">✓</span> Только просмотр в браузере (HTML-режим)</div>
+  </div>
+</div>
+
+<script>
+  let selectedFile = null;
+  let currentMode = 'encrypted_pdf';
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    document.getElementById('pdfSettings').classList.toggle('hidden', mode !== 'encrypted_pdf');
+    document.getElementById('htmlSettings').classList.toggle('hidden', mode !== 'protected_html');
+    document.getElementById('processBtn').textContent = mode === 'encrypted_pdf' ? '🔒 Защитить PDF' : '🌐 Создать просмотрщик';
+  }
+
+  // Drag & drop
+  const uploadArea = document.getElementById('uploadArea');
+  const fileInput = document.getElementById('fileInput');
+
+  uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+  });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) {
+      setFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) setFile(e.target.files[0]);
+  });
+
+  function setFile(file) {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      showStatus('error', '⛔ Только PDF файлы');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      showStatus('error', '⛔ Файл больше 50 MB');
+      return;
+    }
+    selectedFile = file;
+    document.getElementById('fileName').textContent = `${file.name} (${formatSize(file.size)})`;
+    document.getElementById('fileInfo').classList.add('show');
+    uploadArea.classList.add('has-file');
+    uploadArea.querySelector('.upload-text').textContent = 'Файл выбран';
+    hideStatus();
+  }
+
+  function removeFile() {
+    selectedFile = null;
+    fileInput.value = '';
+    document.getElementById('fileInfo').classList.remove('show');
+    uploadArea.classList.remove('has-file');
+    uploadArea.querySelector('.upload-text').textContent = 'Нажмите или перетащите PDF файл сюда';
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+  }
+
+  function showStatus(type, text) {
+    const status = document.getElementById('status');
+    status.className = `status show ${type}`;
+    status.innerHTML = text;
+  }
+
+  function hideStatus() {
+    document.getElementById('status').className = 'status';
+  }
+
+  async function processFile() {
+    if (!selectedFile) {
+      showStatus('error', '⛔ Сначала выберите PDF файл');
+      return;
+    }
+
+    const btn = document.getElementById('processBtn');
+    btn.disabled = true;
+    showStatus('processing', '<span class="spinner"></span> Обрабатываю PDF...');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('mode', currentMode);
+
+      const password = document.getElementById('password').value;
+      if (password) formData.append('password', password);
+
+      const watermark = document.getElementById('watermark').value;
+      if (watermark) formData.append('watermark', watermark);
+
+      const title = document.getElementById('docTitle').value;
+      if (title) formData.append('title', title);
+
+      const endpoint = currentMode === 'encrypted_pdf' ? '/api/protect-pdf-upload' : '/api/protect-html';
+      const response = await fetch(endpoint, { method: 'POST', body: formData });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(err.error || 'Failed');
+      }
+
+      const blob = await response.blob();
+      const filename = currentMode === 'encrypted_pdf'
+        ? selectedFile.name.replace(/\.pdf$/i, '_ЗАЩИЩЕНО.pdf')
+        : selectedFile.name.replace(/\.pdf$/i, '_просмотр.html');
+
+      // Скачиваем
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showStatus('success', '✅ Готово! Файл скачан. ' +
+        (currentMode === 'encrypted_pdf'
+          ? `Пароль: <code>${password || 'axioma2026'}</code>`
+          : 'Откройте HTML в браузере для просмотра'));
+    } catch (err) {
+      showStatus('error', '❌ ' + err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
