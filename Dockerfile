@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Python библиотеки
-RUN pip3 install --break-system-packages --no-cache-dir pypdf reportlab pymupdf pillow
+RUN pip3 install --break-system-packages --no-cache-dir pypdf reportlab pymupdf pillow numpy
 
 # Переменные для Playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
