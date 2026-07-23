@@ -16,45 +16,43 @@ from reportlab.lib.pagesizes import A4
 
 def add_ocr_noise(img, font_path=None):
     """
-    Защита от OCR (включая LLM Vision типа GPT-4V / DeepSeek-VL):
-    - Baseline wobble — сдвиг строк по вертикали (ломает распознавание слов)
-    - Зерно-шум (средний)
-    - Диагональные полосы
-    - JPEG quality 65 при сохранении (вместо 85) — артефакты компрессии
+    Защита от OCR без искажения читаемого текста:
+    - Мелкий мусор ТОЛЬКО в межстрочных промежутках (не на самих строках)
+    - Диагональные полосы (лёгкие, фоновые)
+    - Лёгкий зерно-шум
+    - JPEG quality 70 при сохранении (вместо 82)
+    Строки текста НЕ сдвигаются, НЕ искажаются — человек читает без проблем.
     """
     import numpy as np
-    arr = np.array(img).astype(np.int16)
-
-    # 1. Baseline wobble — сдвигаем строки (полосы по ~14px = 1 строка текста)
-    h, w = arr.shape[:2]
-    out = arr.copy()
-    for y in range(0, h, 14):
-        shift = random.randint(-2, 2)
-        if shift != 0 and y + 14 < h:
-            out[y:y+14, :] = np.roll(arr[y:y+14, :], shift, axis=0)
-    arr = out
-
-    # 2. Диагональные полосы
-    img = Image.fromarray(arr.astype(np.uint8))
     draw = ImageDraw.Draw(img, 'RGBA')
-    for offset in range(-h, w + h, 30):
-        draw.line([(offset, 0), (offset + h, h)], fill=(200, 200, 200, 60), width=1)
+    w, h = img.size
 
-    # 3. Мусорные символы вдоль baseline
     try:
-        font_tiny = ImageFont.truetype(font_path, 9) if font_path else ImageFont.load_default()
+        font_tiny = ImageFont.truetype(font_path, 7) if font_path else ImageFont.load_default()
     except Exception:
         font_tiny = ImageFont.load_default()
+
+    # 1. Диагональные полосы — лёгкие, фон
+    for offset in range(-h, w + h, 40):
+        draw.line([(offset, 0), (offset + h, h)], fill=(210, 210, 210, 35), width=1)
+
+    # 2. Мусор в межстрочных промежутках (белые полоски ~7px высотой каждые ~20px)
+    #    Имитируем зазоры между строками текста
     garbage = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя0123456789'
-    for y in range(15, h, 6):
-        for _ in range(2):
+    for y in range(0, h, 18):  # каждые 18 пикселей — межстрочный зазор
+        # Сдвиг в межстрочье (между буквами одной строки и следующей)
+        gap_y = y + 14  # примерно в межстрочном зазоре
+        if gap_y >= h:
+            continue
+        for _ in range(4):  # 4 мусорных символа в каждом зазоре
             x = random.randint(0, max(0, w - 20))
             ch = random.choice(garbage)
-            draw.text((x, y), ch, fill=(160, 160, 160, 50), font=font_tiny)
+            # Полупрозрачный серый — едва видно глазом, но OCR путается
+            draw.text((x, gap_y), ch, fill=(140, 140, 140, 45), font=font_tiny)
 
-    # 4. Зерно-шум (средний)
+    # 3. Лёгкое зерно (не портит читаемость)
     arr = np.array(img).astype(np.int16)
-    noise = np.random.randint(-20, 20, arr.shape, dtype=np.int16)
+    noise = np.random.randint(-8, 8, arr.shape, dtype=np.int16)
     arr = np.clip(arr + noise, 0, 255).astype(np.uint8)
     img = Image.fromarray(arr)
 
